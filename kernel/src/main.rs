@@ -1,81 +1,37 @@
+//! RINO kernel entry point for x86_64 BIOS boot.
+//!
+//! This is intentionally thin. It:
+//! 1. Receives BootInfo from the bootloader
+//! 2. Initializes the x86_64 platform
+//! 3. Hands off to kernel_core::kernel_main
+//!
+//! If you're adding kernel logic, it belongs in `kernel-core`, not here.
+//! If you're adding x86 hardware code, it belongs in `arch-x86_64`, not here.
+
 #![no_std]
 #![no_main]
 
 use bootloader_api::BootInfo;
+use hal_traits::Platform;
 
-// ============================================================================
-// Serial port output
-// ============================================================================
+/// Entry point called by the bootloader.
+fn kernel_entry(_boot_info: &'static mut BootInfo) -> ! {
+    // Initialize x86_64 hardware
+    let platform = unsafe { arch_x86_64::X86_64Platform::init() };
 
-const SERIAL_PORT: u16 = 0x3F8;
-
-/// Write one byte to an x86 I/O port.
-///
-/// # Safety
-/// Writing to an arbitrary I/O port can have unpredictable hardware side effects.
-/// The caller must ensure the port address is valid.
-unsafe fn outb(port: u16, val: u8) {
-    unsafe {
-        core::arch::asm!(
-            "out dx, al",
-            in("dx") port,
-            in("al") val,
-            options(nomem, nostack)
-        );
-    }
+    // Hand off to the arch-independent kernel
+    kernel_core::kernel_main(platform)
 }
 
-/// Write a string to the serial port, byte by byte.
-/// This is our bare-metal print function.
-fn serial_print(s: &str) {
-    for byte in s.bytes() {
-        unsafe { outb(SERIAL_PORT, byte) };
-    }
-}
+bootloader_api::entry_point!(kernel_entry);
 
-// ============================================================================
-// Kernel entry point
-// ============================================================================
-
-/// The actual kernel entry point. Called by the bootloader after it sets up
-/// long mode, a stack, and basic memory mappings.
-///
-/// `boot_info` contains information the bootloader passes to us:
-/// memory map, framebuffer details, RSDP address, etc.
-fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
-    serial_print("=============================\n");
-    serial_print("  RINO Is Not an OS\n");
-    serial_print("  Booted successfully.\n");
-    serial_print("=============================\n");
-
-    // We can now access boot_info for memory map, etc.
-    // For now, just confirm we got it.
-    serial_print("Boot info received from bootloader.\n");
-
-    // Halt
-    loop {
-        unsafe {
-            core::arch::asm!("hlt", options(nomem, nostack));
-        }
-    }
-}
-
-// This macro does three things:
-// 1. Creates the actual `_start` entry point symbol
-// 2. Validates that your function has the correct signature
-// 3. Embeds metadata so the bootloader can find and call your function
-bootloader_api::entry_point!(kernel_main);
-
-// ============================================================================
-// Panic handler
-// ============================================================================
-
+/// Panic handler — prints to serial and halts.
 #[panic_handler]
-fn panic(_info: &core::panic::PanicInfo) -> ! {
-    serial_print("!!! KERNEL PANIC !!!\n");
+fn panic(info: &core::panic::PanicInfo) -> ! {
+    // We can't easily get a serial port here without global state.
+    // For now, just halt. We'll improve this later with a global logger.
+    let _ = info;
     loop {
-        unsafe {
-            core::arch::asm!("hlt", options(nomem, nostack));
-        }
+        unsafe { core::arch::asm!("hlt", options(nomem, nostack)) };
     }
 }

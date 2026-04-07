@@ -9,6 +9,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f202df86484c868dbad7eaa557ef785d5c66295e41b460ef922eca0723b842c"
 
 [[package]]
+name = "arch-x86_64"
+version = "0.1.0"
+dependencies = [
+ "hal-traits",
+]
+
+[[package]]
 name = "bincode"
 version = "1.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -176,6 +183,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "hal-traits"
+version = "0.1.0"
+
+[[package]]
 name = "hashbrown"
 version = "0.15.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -228,6 +239,13 @@ checksum = "2e04e2ef80ce82e13552136fabeef8a5ed1f985a96805761cbb9a2c34e7664d9"
 dependencies = [
  "once_cell",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "kernel-core"
+version = "0.1.0"
+dependencies = [
+ "hal-traits",
 ]
 
 [[package]]
@@ -337,7 +355,10 @@ dependencies = [
 name = "rino-kernel"
 version = "0.1.0"
 dependencies = [
+ "arch-x86_64",
  "bootloader_api",
+ "hal-traits",
+ "kernel-core",
 ]
 
 [[package]]

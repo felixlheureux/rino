@@ -5,3 +5,6 @@ edition = "2024"
 
 [dependencies]
 bootloader_api = "0.11"
+hal-traits = { path = "../crates/hal-traits" }
+kernel-core = { path = "../crates/kernel-core" }
+arch-x86_64 = { path = "../crates/arch-x86_64" }
