@@ -3,5 +3,9 @@ name = "kernel-core"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+default = []
+allocator = []
+
 [dependencies]
 hal-traits = { path = "../hal-traits" }

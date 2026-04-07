@@ -52,6 +52,16 @@ pub trait Platform {
     /// Access the serial console for output.
     fn serial(&mut self) -> &mut Self::Serial;
 
+    /// Return the start address and size of a memory region the kernel
+    /// can use as a heap. The arch crate decides where this region is
+    /// (e.g., by reading the memory map from the bootloader).
+    ///
+    /// Returns `None` if no heap is available (embedded targets with
+    /// no spare memory).
+    fn heap_region(&self) -> Option<(*mut u8, usize)> {
+        None
+    }
+
     /// Halt the CPU forever. Called when there's nothing left to do.
     ///
     /// On x86_64, this executes `hlt` in a loop.

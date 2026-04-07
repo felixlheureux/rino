@@ -3,6 +3,10 @@ name = "rino-kernel"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+default = ["allocator"]
+allocator = ["kernel-core/allocator"]
+
 [dependencies]
 bootloader_api = "0.11"
 hal-traits = { path = "../crates/hal-traits" }

@@ -76,11 +76,23 @@ impl X86_64Platform {
     }
 }
 
+use core::cell::UnsafeCell;
+
+struct Heap(UnsafeCell<[u8; 64 * 1024]>);
+
+unsafe impl Sync for Heap {}
+
+static HEAP: Heap = Heap(UnsafeCell::new([0; 64 * 1024]));
+
 impl Platform for X86_64Platform {
     type Serial = Uart16550;
 
     fn serial(&mut self) -> &mut Self::Serial {
         &mut self.serial
+    }
+
+    fn heap_region(&self) -> Option<(*mut u8, usize)> {
+        Some((HEAP.0.get() as *mut u8, 64 * 1024))
     }
 
     fn halt() -> ! {
