@@ -10,20 +10,13 @@
 #![no_std]
 #![feature(abi_x86_interrupt)]
 
-use hal_traits::{Platform, SerialPort};
-
 pub mod interrupts;
+pub mod serial;
 
-/// Write a string to COM1. Used by interrupt handlers that can't
-/// access the Platform trait.
-pub fn serial_print(s: &str) {
-    for byte in s.bytes() {
-        if byte == b'\n' {
-            unsafe { outb(0x3F8, b'\r') };
-        }
-        unsafe { outb(0x3F8, byte) };
-    }
-}
+#[macro_use]
+pub mod macros;
+
+use hal_traits::{Platform, SerialPort};
 
 // ============================================================================
 // UART 16550 serial driver
@@ -142,4 +135,16 @@ pub(crate) unsafe fn outb(port: u16, val: u8) {
     }
 }
 
-// We'll add `inb` when we need to read from ports (e.g., polling UART status).
+#[inline]
+pub(crate) unsafe fn inb(port: u16) -> u8 {
+    let val: u8;
+    unsafe {
+        core::arch::asm!(
+            "in al, dx",
+            out("al") val,
+            in("dx") port,
+            options(nomem, nostack)
+        );
+    }
+    val
+}

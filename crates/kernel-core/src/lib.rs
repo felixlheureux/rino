@@ -19,64 +19,62 @@ pub mod allocator;
 
 use hal_traits::{Platform, SerialPort};
 
+/// Helper to reduce verbosity of serial printing.
+fn kprint<P: Platform>(platform: &mut P, s: &str) {
+    platform.serial().write_str(s);
+}
+
 pub fn kernel_main<P: Platform>(mut platform: P) -> ! {
-    platform
-        .serial()
-        .write_str("=============================\n");
-    platform.serial().write_str("  RINO Is Not an OS\n");
-    platform.serial().write_str("  Booted successfully.\n");
-    platform
-        .serial()
-        .write_str("=============================\n");
-    platform.serial().write_str("\n");
-    platform
-        .serial()
-        .write_str("kernel-core: arch-independent entry point\n");
+    kprint(&mut platform, "=============================\n");
+    kprint(&mut platform, "  RINO Is Not an OS\n");
+    kprint(&mut platform, "  Booted successfully.\n");
+    kprint(&mut platform, "=============================\n");
+    kprint(&mut platform, "\n");
+    kprint(&mut platform, "kernel-core: arch-independent entry point\n");
 
-    platform
-        .serial()
-        .write_str("kernel-core: arch-independent entry point\n");
-
-    // Test: trigger a breakpoint exception.
-    // If interrupts are set up correctly, this prints a message and continues.
-    // If not, the CPU triple-faults and QEMU reboots.
-    platform
-        .serial()
-        .write_str("Testing breakpoint exception...\n");
+    kprint(&mut platform, "Testing breakpoint exception...\n");
     unsafe { core::arch::asm!("int3", options(nomem, nostack)) };
-    platform
-        .serial()
-        .write_str("Breakpoint handled! Execution continued.\n");
+    kprint(&mut platform, "Breakpoint handled! Execution continued.\n");
 
     #[cfg(feature = "allocator")]
     {
         if let Some((heap_start, heap_size)) = platform.heap_region() {
             allocator::init(heap_start, heap_size);
-            platform
-                .serial()
-                .write_str("[allocator] heap initialized\n");
+            kprint(&mut platform, "[allocator] heap initialized\n");
 
             {
                 let mut v = alloc::vec![1, 2, 3, 4, 5];
                 v.push(6);
-                platform
-                    .serial()
-                    .write_str("[allocator] Vec allocated and used successfully\n");
+                kprint(
+                    &mut platform,
+                    "[allocator] Vec allocated and used successfully\n",
+                );
             }
         } else {
-            platform
-                .serial()
-                .write_str("[allocator] no heap region available\n");
+            kprint(&mut platform, "[allocator] no heap region available\n");
         }
     }
 
     #[cfg(not(feature = "allocator"))]
     {
-        platform
-            .serial()
-            .write_str("[no allocator] minimal build, heap disabled\n");
+        kprint(
+            &mut platform,
+            "[no allocator] minimal build, heap disabled\n",
+        );
     }
 
-    platform.serial().write_str("\nNo work to do. Halting.\n");
+    kprint(&mut platform, "\nNo work to do. Halting.\n");
     P::halt()
+}
+
+#[cfg(feature = "tests")]
+pub fn run_tests<P: Platform>(platform: &mut P) {
+    platform.serial().write_str("[test] breakpoint...");
+    unsafe { core::arch::asm!("int3", options(nomem, nostack)) };
+    platform.serial().write_str(" OK\n");
+
+    platform.serial().write_str("[test] heap alloc...");
+    let v = alloc::vec![1, 2, 3];
+    assert!(v.len() == 3);
+    platform.serial().write_str(" OK\n");
 }

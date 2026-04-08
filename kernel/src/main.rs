@@ -25,12 +25,10 @@ fn kernel_entry(_boot_info: &'static mut BootInfo) -> ! {
 
 bootloader_api::entry_point!(kernel_entry);
 
-/// Panic handler — prints to serial and halts.
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
-    // We can't easily get a serial port here without global state.
-    // For now, just halt. We'll improve this later with a global logger.
-    let _ = info;
+    arch_x86_64::println!("=== KERNEL PANIC ===");
+    arch_x86_64::println!("{}", info);
     loop {
         unsafe { core::arch::asm!("hlt", options(nomem, nostack)) };
     }
