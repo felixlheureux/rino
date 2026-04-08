@@ -33,6 +33,21 @@ pub fn kernel_main<P: Platform>(mut platform: P) -> ! {
         .serial()
         .write_str("kernel-core: arch-independent entry point\n");
 
+    platform
+        .serial()
+        .write_str("kernel-core: arch-independent entry point\n");
+
+    // Test: trigger a breakpoint exception.
+    // If interrupts are set up correctly, this prints a message and continues.
+    // If not, the CPU triple-faults and QEMU reboots.
+    platform
+        .serial()
+        .write_str("Testing breakpoint exception...\n");
+    unsafe { core::arch::asm!("int3", options(nomem, nostack)) };
+    platform
+        .serial()
+        .write_str("Breakpoint handled! Execution continued.\n");
+
     #[cfg(feature = "allocator")]
     {
         if let Some((heap_start, heap_size)) = platform.heap_region() {

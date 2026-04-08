@@ -8,8 +8,22 @@
 //! All `unsafe` hardware interaction for x86 is confined here.
 
 #![no_std]
+#![feature(abi_x86_interrupt)]
 
 use hal_traits::{Platform, SerialPort};
+
+pub mod interrupts;
+
+/// Write a string to COM1. Used by interrupt handlers that can't
+/// access the Platform trait.
+pub fn serial_print(s: &str) {
+    for byte in s.bytes() {
+        if byte == b'\n' {
+            unsafe { outb(0x3F8, b'\r') };
+        }
+        unsafe { outb(0x3F8, byte) };
+    }
+}
 
 // ============================================================================
 // UART 16550 serial driver
@@ -72,6 +86,10 @@ impl X86_64Platform {
     /// Must be called exactly once, early in the boot process.
     pub unsafe fn init() -> Self {
         let serial = unsafe { Uart16550::new(COM1) };
+
+        // Set up interrupt handlers before anything can fault
+        unsafe { interrupts::init() };
+
         Self { serial }
     }
 }
@@ -113,7 +131,7 @@ impl Platform for X86_64Platform {
 /// # Safety
 /// Writing to an arbitrary I/O port can have unpredictable hardware effects.
 #[inline]
-unsafe fn outb(port: u16, val: u8) {
+pub(crate) unsafe fn outb(port: u16, val: u8) {
     unsafe {
         core::arch::asm!(
             "out dx, al",

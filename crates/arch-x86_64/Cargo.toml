@@ -5,3 +5,4 @@ edition = "2024"
 
 [dependencies]
 hal-traits = { path = "../hal-traits" }
+x86_64 = "0.15.4"
